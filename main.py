@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
+from message_filter import is_scam       # file with function to detect scam using regex
 
 load_dotenv()
 
@@ -36,12 +37,35 @@ async def on_message(message):
     # Bot shouldn't reply to its own messages
     if message.author == bot.user:
         return
+    
+    # TODO: fix time format in mod logs
+    if is_scam(message.content.lower()):
+        # logging.debug(f"Message received: {message.content}")
+        channel_id = 1416614837512835123        # mod channel to log violating users & their messages
+        mod_channel = bot.get_channel(channel_id)
+
+        if mod_channel:
+            await mod_channel.send(
+                f"🚨 Scam message detected and removed in {message.channel.mention}:\n"
+                f"**Author:** {message.author.name}\n"
+                f"**Content:** {message.content}\n"
+                f"**Date & time sent:** {message.created_at.strftime('%Y:%m:%d %H:%M:%S %Z %z')}"
+            )
+
+        await message.delete()
+        await message.channel.send(
+            f"⚠️ {message.author.mention}, your message was flagged as a potential scam!"
+        )
+        return
+    
     # If any message contains prohibited words, delete it and warn sender
     if "shit" in message.content.lower():
         await message.delete()
         await message.channel.send(f"{message.author.mention}, language!!")
 
     await bot.process_commands(message)     # allows bot to continue processing the rest of the messages
+
+# REST OF BOT SKELETON -----
 
 # !hello
 @bot.command()
